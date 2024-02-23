@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT road_state, x, y, z, latitude, longitude, timestamp\n        FROM processed_agent_data\n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "road_state",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "x",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "y",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "z",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "latitude",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "longitude",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d9b096480b319a4885f548d83d4a693b80c18e43b8ec199f4a0b38bedb6dbf81"
+}

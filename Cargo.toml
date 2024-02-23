@@ -1,0 +1,38 @@
+[package]
+name = "lab2"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+strip = true
+
+[dependencies]
+actix-web = "4.5.1"
+actix-ws = "0.2.5"
+chrono = { version = "0.4.34", default-features = false, features = [
+    "serde",
+    "now",
+] }
+color-eyre = "0.6.2"
+config = { version = "0.14.0", default-features = false, features = ["toml"] }
+secrecy = { version = "0.8.0", features = ["serde"] }
+serde = { version = "1.0.197", features = ["derive", "rc"] }
+serde_json = "1.0.114"
+sqlx = { version = "0.7.3", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "postgres",
+    "migrate",
+    "chrono",
+] }
+thiserror = "1.0.57"
+tokio = { version = "1.36.0", features = ["full"] }
+tokio-stream = "0.1.14"
+tracing = "0.1.40"
+tracing-appender = { version = "0.2.3", features = ["parking_lot"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+mime = "0.3.17"
+crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }

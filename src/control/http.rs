@@ -1,16 +1,95 @@
-use actix_web::http::StatusCode;
-use actix_web::web::Redirect;
-use actix_web::{get, http::header, post, put, web, HttpResponse};
+use std::{
+    fmt,
+    num::{NonZeroU32, NonZeroU8},
+};
+
+use actix_web::{
+    delete, get,
+    http::{header, StatusCode},
+    post, put,
+    web::{self, Redirect},
+    HttpResponse,
+};
 use serde::{Deserialize, Deserializer};
-use std::fmt;
-use std::num::{NonZeroU32, NonZeroU8};
 use tracing::instrument;
+use utoipa::IntoParams;
 
-use crate::data::ProcessedAgentId;
-use crate::{control::ws, data::ProcessedAgent, service};
+use crate::{
+    control::ws,
+    data::{ProcessedAgent, ProcessedAgentId},
+    service,
+};
 
-#[instrument(skip(subs, pool))]
+/// Post a single processed agent data and notify ws subscribers
+#[utoipa::path(
+    request_body(
+        content = ProcessedAgent,
+        description = "Processed agent data to post and notify ws subscribers about",
+        example = json!({
+            "road_state": "NORMAL",
+            "accelerometer": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "gps": {
+                "latitude": 0.0,
+                "longitude": 0.0
+            },
+            "timestamp": "2023-10-01T00:00:00Z"
+        }),
+    ),
+    responses(
+        (
+            status = 201,
+            headers(("Location" = String, description = "Location of the created resource")),
+        ),
+        (status = "5XX", description = "Internal server error")
+    )
+)]
 #[post("/api/processed-agent-data")]
+#[instrument(skip(subs, pool))]
+pub async fn create_processed_agent_data(
+    data: web::Json<ProcessedAgent>,
+    subs: web::Data<ws::Subscribers>,
+    pool: web::Data<sqlx::PgPool>,
+) -> actix_web::Result<Redirect> {
+    let id = service::create_processed_agent_data(data.into_inner(), &subs, &pool).await?;
+    Ok(Redirect::to(format!("/processed-agent-data/{id}")).using_status_code(StatusCode::CREATED))
+}
+
+/// Post a list of processed agent data and notify ws subscribers
+#[utoipa::path(
+    request_body(
+        content = Vec<ProcessedAgent>,
+        description = "List of processed agent data to post and notify ws subscribers about",
+        example = json!([
+            {
+                "road_state": "NORMAL",
+                "accelerometer": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "gps": {
+                    "latitude": 0.0,
+                    "longitude": 0.0
+                },
+                "timestamp": "2023-10-01T00:00:00Z"
+            }
+        ]),
+    ),
+    responses(
+        (
+            status = 201,
+            description = "Processed agent data created",
+            headers(("Location" = Vec<String>, description = "Locations of the created resources")),
+        ),
+        (status = "5XX", description = "Internal server error")
+    ),
+)]
+#[post("/api/processed-agent-data")]
+#[instrument(skip(subs, pool))]
 pub async fn create_processed_agent_data_list(
     data: web::Json<Vec<ProcessedAgent>>,
     subs: web::Data<ws::Subscribers>,
@@ -24,19 +103,34 @@ pub async fn create_processed_agent_data_list(
     Ok(response.finish())
 }
 
-#[instrument(skip(subs, pool))]
-#[post("/api/processed-agent-data")]
-pub async fn create_processed_agent_data(
-    data: web::Json<ProcessedAgent>,
-    subs: web::Data<ws::Subscribers>,
-    pool: web::Data<sqlx::PgPool>,
-) -> actix_web::Result<Redirect> {
-    let id = service::create_processed_agent_data(data.into_inner(), &subs, &pool).await?;
-    Ok(Redirect::to(format!("/processed-agent-data/{id}")).using_status_code(StatusCode::CREATED))
-}
-
-#[instrument(skip(pool))]
+/// Read a single processed agent data by ID
+#[utoipa::path(
+    params(ProcessedAgentId),
+    responses(
+        (
+            status = 200,
+            body = ProcessedAgent,
+            description = "A single processed agent data, corresponding to the given id",
+            example = json!({
+                "road_state": "NORMAL",
+                "accelerometer": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "gps": {
+                    "latitude": 0.0,
+                    "longitude": 0.0
+                },
+                "timestamp": "2023-10-01T00:00:00Z"
+            }),
+        ),
+        (status = 404, description = "Processed agent data not found"),
+        (status = "5XX", description = "Internal server error")
+    )
+)]
 #[get("/api/processed-agent-data/{id}")]
+#[instrument(skip(pool))]
 pub async fn read_processed_agent_data(
     id: web::Path<ProcessedAgentId>,
     pool: web::Data<sqlx::PgPool>,
@@ -45,30 +139,80 @@ pub async fn read_processed_agent_data(
     Ok(result.map(web::Json))
 }
 
-#[instrument(skip(pool))]
+/// Read a list of processed agent data
+#[utoipa::path(
+    params(Pagination),
+    responses(
+        (
+            status = 200,
+            body = Vec<ProcessedAgent>,
+            description = "List of processed agent data"
+        ),
+        (status = "5XX", description = "Internal server error")
+    )
+)]
 #[get("/api/processed-agent-data")]
+#[instrument(skip(pool))]
 pub async fn read_processed_agent_data_list(
-    pagination: web::Query<Option<Pagination>>,
+    pagination: web::Query<Pagination>,
     pool: web::Data<sqlx::PgPool>,
 ) -> actix_web::Result<web::Json<Vec<ProcessedAgent>>> {
-    let pagination = pagination.into_inner().unwrap_or_default();
-    let result =
-        service::fetch_processed_agent_data_list(pagination.page, pagination.size.0, &pool).await?;
+    let result = service::fetch_processed_agent_data_list(
+        pagination.page.unwrap_or_default().0,
+        pagination.size.unwrap_or_default().0,
+        &pool,
+    )
+    .await?;
     Ok(web::Json(result))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize, IntoParams)]
 struct Pagination {
-    page: NonZeroU32,
-    size: PageSize,
+    /// The page number, starting from 1
+    #[param(minimum = 1, value_type = NonZeroU32)]
+    page: Option<PageNumber>,
+    /// The number of items per page, between 1 and 20
+    #[param(minimum = 1, maximum = 20, value_type = NonZeroU8)]
+    size: Option<PageSize>,
 }
 
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Deserialize)]
+#[repr(transparent)]
+#[serde(transparent)]
+struct PageNumber(NonZeroU32);
+
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)] // `Deserialize` is derived manually
 #[repr(transparent)]
 struct PageSize(NonZeroU8);
 
-#[instrument(skip(pool, subs))]
+/// Update a single processed agent data and notify ws subscribers
+#[utoipa::path(
+    params(ProcessedAgentId),
+    request_body(
+        content = ProcessedAgent,
+        description = "New processed agent data to replace the existing one",
+        example = json!({
+            "road_state": "NORMAL",
+            "accelerometer": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "gps": {
+                "latitude": 0.0,
+                "longitude": 0.0
+            },
+            "timestamp": "2023-10-01T00:00:00Z"
+        }),
+    ),
+    responses(
+        (status = 204, description = "Processed agent data updated"),
+        (status = 404, description = "Processed agent data for the given ID was not found"),
+        (status = "5XX", description = "Internal server error")
+    )
+)]
 #[put("/api/processed-agent-data/{id}")]
+#[instrument(skip(pool, subs))]
 pub async fn update_processed_agent_data(
     id: web::Path<ProcessedAgentId>,
     data: web::Json<ProcessedAgent>,
@@ -85,8 +229,16 @@ pub async fn update_processed_agent_data(
     })
 }
 
+/// Delete a single processed agent data and notify ws subscribers
+#[utoipa::path(
+    params(ProcessedAgentId),
+    responses(
+        (status = 204, description = "Processed agent data deleted or was not present in the first place"),
+        (status = "5XX", description = "Internal server error")
+    )
+)]
+#[delete("/api/processed-agent-data/{id}")]
 #[instrument(skip(pool, subs))]
-#[post("/api/processed-agent-data/{id}")]
 pub async fn delete_processed_agent_data(
     id: web::Path<ProcessedAgentId>,
     subs: web::Data<ws::Subscribers>,
@@ -97,13 +249,10 @@ pub async fn delete_processed_agent_data(
     Ok(HttpResponse::NoContent().finish())
 }
 
-impl Default for Pagination {
+impl Default for PageNumber {
     #[inline(always)]
     fn default() -> Self {
-        Pagination {
-            page: NonZeroU32::MIN,
-            size: PageSize::default(),
-        }
+        PageNumber(NonZeroU32::MIN)
     }
 }
 

@@ -1,3 +1,4 @@
+use std::net::{Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::str::FromStr;
 
 use color_eyre::eyre::{eyre, Context};
@@ -8,6 +9,7 @@ use sqlx::postgres::PgConnectOptions;
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
     database: Database,
+    server: Server,
 }
 
 #[derive(Debug, Deserialize)]
@@ -18,6 +20,12 @@ pub struct Database {
     password: SecretString,
     #[serde(rename = "dbname")]
     name: SecretString,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct Server {
+    host: Ipv4Addr,
+    port: u16,
 }
 
 impl Configuration {
@@ -32,6 +40,7 @@ impl Configuration {
                 let environment: Environment = std::env::var("APP_ENVIRONMENT")?.parse()?;
                 config::File::from(config_dir.join(environment.as_str())).required(true)
             })
+            .add_source(config::Environment::with_prefix("APP").separator("__"))
             .build()?;
 
         config.try_deserialize().map_err(Into::into)
@@ -39,6 +48,10 @@ impl Configuration {
 
     pub fn database(&self) -> &Database {
         &self.database
+    }
+
+    pub fn server(&self) -> Server {
+        self.server
     }
 }
 
@@ -57,6 +70,20 @@ impl Database {
 enum Environment {
     Local,
     Production,
+}
+
+impl From<Server> for SocketAddr {
+    fn from(value: Server) -> Self {
+        SocketAddr::new(value.host.into(), value.port)
+    }
+}
+
+impl ToSocketAddrs for Server {
+    type Iter = <SocketAddr as ToSocketAddrs>::Iter;
+
+    fn to_socket_addrs(&self) -> std::io::Result<Self::Iter> {
+        SocketAddr::from(*self).to_socket_addrs()
+    }
 }
 
 impl Environment {

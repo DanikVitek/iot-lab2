@@ -24,7 +24,9 @@ use tracing::instrument;
 use crate::data::Dto;
 use crate::{error::AppResult, reclone};
 
+/// Websocket endpoint for subscribing to processed agent data
 #[get("/ws")]
+#[instrument(skip_all)]
 pub async fn ws_endpoint(
     req: HttpRequest,
     body: web::Payload,

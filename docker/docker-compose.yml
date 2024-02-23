@@ -39,8 +39,11 @@ services:
     environment:
       RUST_BACKTRACE: 1
       RUST_LOG: DEBUG
+    volumes:
+      - ./store/logs:/app/logs
+      - ../configuration:/app/configuration
     ports:
-      - "8000:8000"
+      - "8080:8080"
     networks:
       db_network:
 

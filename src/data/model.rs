@@ -1,28 +1,29 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
+use utoipa::{IntoParams, ToResponse, ToSchema};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToResponse, ToSchema)]
 pub struct Accelerometer {
     pub x: f64,
     pub y: f64,
     pub z: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToResponse, ToSchema)]
 pub struct Gps {
     pub latitude: f64,
     pub longitude: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToResponse, ToSchema)]
 pub struct Agent {
     pub accelerometer: Accelerometer,
     pub gps: Gps,
     pub timestamp: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToResponse, ToSchema)]
 pub struct ProcessedAgent {
     #[serde(flatten)]
     pub agent_data: Agent,
@@ -30,11 +31,24 @@ pub struct ProcessedAgent {
 }
 
 #[derive(
-    Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash, Deserialize, Serialize, sqlx::Type,
+    Debug,
+    Clone,
+    Copy,
+    Ord,
+    PartialOrd,
+    Eq,
+    PartialEq,
+    Hash,
+    Deserialize,
+    Serialize,
+    sqlx::Type,
+    IntoParams,
 )]
 #[repr(transparent)]
 #[serde(transparent)]
 #[sqlx(transparent)]
+#[into_params(names("id"))]
+/// ID of the processed agent to read, update, or delete.
 pub struct ProcessedAgentId(i32);
 
 pub trait Dto {

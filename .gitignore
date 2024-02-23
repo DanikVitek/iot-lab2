@@ -2,3 +2,4 @@
 /.vscode
 /.idea
 /configuration/production.toml
+/docker/store/logs/

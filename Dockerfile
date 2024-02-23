@@ -21,7 +21,6 @@ RUN apt-get update -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/lab2 lab2
-COPY configuration configuration
 COPY migrations migrations
 ENV APP_ENVIRONMENT production
 ENTRYPOINT [ "./lab2" ]

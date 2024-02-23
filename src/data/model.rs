@@ -27,6 +27,7 @@ pub struct Agent {
 pub struct ProcessedAgent {
     #[serde(flatten)]
     pub agent_data: Agent,
+    #[schema(max_length = 255, example = "NORMAL")]
     pub road_state: String,
 }
 

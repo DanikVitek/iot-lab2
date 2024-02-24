@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 use std::num::{NonZeroU32, NonZeroU8};
 
-use super::{ProcessedAgent, ProcessedAgentDao, ProcessedAgentId};
+use super::{ProcessedAgent, ProcessedAgentDao, ProcessedAgentId, ProcessedAgentWithId};
 
 pub async fn insert_processed_agent_data_list(
     agents: &[ProcessedAgent],
@@ -66,7 +66,7 @@ pub async fn select_processed_agent_data(
     let record = sqlx::query_as!(
         ProcessedAgentDao,
         r#"
-        SELECT road_state, x, y, z, latitude, longitude, timestamp
+        SELECT NULL as "id?: ProcessedAgentId", road_state, x, y, z, latitude, longitude, timestamp
         FROM processed_agent_data
         WHERE id = $1
         "#,
@@ -82,13 +82,13 @@ pub async fn select_processed_agent_data_list(
     page: NonZeroU32,
     size: NonZeroU8,
     pool: &PgPool,
-) -> sqlx::Result<Vec<ProcessedAgent>> {
+) -> sqlx::Result<Vec<ProcessedAgentWithId>> {
     let offset = (page.get() - 1) * size.get() as u32;
 
     let records = sqlx::query_as!(
         ProcessedAgentDao,
         r#"
-        SELECT road_state, x, y, z, latitude, longitude, timestamp
+        SELECT id as "id!: ProcessedAgentId", road_state, x, y, z, latitude, longitude, timestamp
         FROM processed_agent_data
         ORDER BY timestamp DESC
         LIMIT $1 OFFSET $2

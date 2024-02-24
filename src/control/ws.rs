@@ -12,8 +12,7 @@ use actix_web::{
     HttpRequest, HttpResponse,
 };
 use actix_ws::{CloseCode, CloseReason};
-use serde::ser::SerializeStruct;
-use serde::{Serialize, Serializer};
+use serde::{ser::SerializeStruct, Serialize, Serializer};
 use tokio::{
     runtime::Handle,
     sync::{Mutex, RwLock},

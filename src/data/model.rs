@@ -1,6 +1,7 @@
+use std::fmt::{Debug, Display, Formatter};
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display, Formatter};
 use utoipa::{IntoParams, ToResponse, ToSchema};
 
 #[derive(Debug, Deserialize, Serialize, ToResponse, ToSchema)]
@@ -52,6 +53,16 @@ pub struct ProcessedAgent {
 /// ID of the processed agent to read, update, or delete.
 pub struct ProcessedAgentId(i32);
 
+#[derive(Debug, Serialize, ToResponse, ToSchema)]
+pub struct ProcessedAgentWithId {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(minimum = 1, value_type = i32, nullable = false)]
+    id: Option<ProcessedAgentId>,
+    #[serde(flatten)]
+    #[schema(inline)]
+    data: ProcessedAgent,
+}
+
 pub trait Dto {
     type Id<'a>;
 }
@@ -66,13 +77,15 @@ impl Dto for [ProcessedAgent] {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ProcessedAgentDao {
-    pub road_state: String,
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    pub latitude: f64,
-    pub longitude: f64,
-    pub timestamp: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) id: Option<ProcessedAgentId>,
+    pub(super) road_state: String,
+    pub(super) x: f64,
+    pub(super) y: f64,
+    pub(super) z: f64,
+    pub(super) latitude: f64,
+    pub(super) longitude: f64,
+    pub(super) timestamp: DateTime<Utc>,
 }
 
 impl Display for ProcessedAgentId {
@@ -82,16 +95,17 @@ impl Display for ProcessedAgentId {
     }
 }
 
-impl From<ProcessedAgent> for ProcessedAgentDao {
-    fn from(agent: ProcessedAgent) -> Self {
+impl From<ProcessedAgentWithId> for ProcessedAgentDao {
+    fn from(agent: ProcessedAgentWithId) -> Self {
         Self {
-            road_state: agent.road_state,
-            x: agent.agent_data.accelerometer.x,
-            y: agent.agent_data.accelerometer.y,
-            z: agent.agent_data.accelerometer.z,
-            latitude: agent.agent_data.gps.latitude,
-            longitude: agent.agent_data.gps.longitude,
-            timestamp: agent.agent_data.timestamp,
+            id: agent.id,
+            road_state: agent.data.road_state,
+            x: agent.data.agent_data.accelerometer.x,
+            y: agent.data.agent_data.accelerometer.y,
+            z: agent.data.agent_data.accelerometer.z,
+            latitude: agent.data.agent_data.gps.latitude,
+            longitude: agent.data.agent_data.gps.longitude,
+            timestamp: agent.data.agent_data.timestamp,
         }
     }
 }
@@ -112,6 +126,15 @@ impl From<ProcessedAgentDao> for ProcessedAgent {
                 timestamp: dao.timestamp,
             },
             road_state: dao.road_state,
+        }
+    }
+}
+
+impl From<ProcessedAgentDao> for ProcessedAgentWithId {
+    fn from(dao: ProcessedAgentDao) -> Self {
+        Self {
+            id: dao.id,
+            data: dao.into(),
         }
     }
 }

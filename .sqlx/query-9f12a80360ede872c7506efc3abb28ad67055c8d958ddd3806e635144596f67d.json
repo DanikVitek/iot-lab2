@@ -1,40 +1,45 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT road_state, x, y, z, latitude, longitude, timestamp\n        FROM processed_agent_data\n        ORDER BY timestamp DESC\n        LIMIT $1 OFFSET $2\n        ",
+  "query": "\n        SELECT id as \"id!: ProcessedAgentId\", road_state, x, y, z, latitude, longitude, timestamp\n        FROM processed_agent_data\n        ORDER BY timestamp DESC\n        LIMIT $1 OFFSET $2\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "id!: ProcessedAgentId",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
         "name": "road_state",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "x",
         "type_info": "Float8"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "y",
         "type_info": "Float8"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "z",
         "type_info": "Float8"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "latitude",
         "type_info": "Float8"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "longitude",
         "type_info": "Float8"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "timestamp",
         "type_info": "Timestamptz"
       }
@@ -52,8 +57,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "c86de387bd871365b8bb1dba38725fed11317ff005249dcaf93b758f4210972b"
+  "hash": "9f12a80360ede872c7506efc3abb28ad67055c8d958ddd3806e635144596f67d"
 }

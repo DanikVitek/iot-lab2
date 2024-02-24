@@ -60,9 +60,7 @@ async fn main() -> Result<()> {
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
             )
-            .also(|_| {
-                tracing::info!("App built for worker {:?}", thread::current().id());
-            })
+            .also(|_| tracing::info!("App built for worker {:?}", thread::current().id()))
     })
     .bind(config.server())?
     .run()
@@ -81,8 +79,20 @@ async fn main() -> Result<()> {
         control::http::delete_processed_agent_data,
     ),
     components(
-        schemas(data::Accelerometer, data::Gps, data::Agent, data::ProcessedAgent),
-        responses(data::Accelerometer, data::Gps, data::Agent, data::ProcessedAgent),
+        schemas(
+            data::Accelerometer,
+            data::Gps,
+            data::Agent,
+            data::ProcessedAgent,
+            data::ProcessedAgentWithId
+        ),
+        responses(
+            data::Accelerometer,
+            data::Gps,
+            data::Agent,
+            data::ProcessedAgent,
+            data::ProcessedAgentWithId
+        ),
     )
 )]
 struct ApiDocs;

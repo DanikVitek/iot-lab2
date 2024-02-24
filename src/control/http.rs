@@ -16,7 +16,7 @@ use utoipa::IntoParams;
 
 use crate::{
     control::ws,
-    data::{ProcessedAgent, ProcessedAgentId},
+    data::{ProcessedAgent, ProcessedAgentId, ProcessedAgentWithId},
     service,
 };
 
@@ -31,13 +31,13 @@ use crate::{
                 value = json!({
                     "road_state": "NORMAL",
                     "accelerometer": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
                     },
                     "gps": {
-                    "latitude": 0.0,
-                    "longitude": 0.0
+                        "latitude": 0.0,
+                        "longitude": 0.0
                     },
                     "timestamp": "2023-10-01T00:00:00Z"
                 })
@@ -82,21 +82,29 @@ pub async fn create_processed_agent_data(
             let [data] = unsafe { <[_; 1] as TryFrom<Vec<_>>>::try_from(data).unwrap_unchecked() };
             let id = service::create_processed_agent_data(data, &subs, &pool).await?;
             HttpResponse::Created()
-                .append_header((header::LOCATION, format!("/processed-agent-data/{id}")))
+                .append_header((
+                    header::LOCATION,
+                    format!(r#"["/api/processed-agent-data/{id}"]"#),
+                ))
                 .finish()
         }
         Either::Left(Json(data)) => {
             let id = service::create_processed_agent_data(data, &subs, &pool).await?;
             HttpResponse::Created()
-                .append_header((header::LOCATION, format!("/processed-agent-data/{id}")))
+                .append_header((header::LOCATION, format!("/api/processed-agent-data/{id}")))
                 .finish()
         }
         Either::Right(Json(data)) => {
             let ids = service::create_processed_agent_data_list(data, &subs, &pool).await?;
             let mut response = HttpResponse::Created();
-            for id in ids {
-                response.append_header((header::LOCATION, format!("/processed-agent-data/{id}")));
-            }
+            response.append_header((
+                header::LOCATION,
+                serde_json::to_string(
+                    &ids.into_iter()
+                        .map(|id| format!("/api/processed-agent-data/{id}"))
+                        .collect::<Vec<_>>(),
+                )?,
+            ));
             response.finish()
         }
     };
@@ -148,7 +156,7 @@ pub async fn read_processed_agent_data(
     responses(
         (
             status = 200,
-            body = Vec<ProcessedAgent>,
+            body = Vec<ProcessedAgentWithId>,
             description = "List of processed agent data"
         ),
         (status = 400, description = "Invalid pagination parameters"),
@@ -160,7 +168,7 @@ pub async fn read_processed_agent_data(
 pub async fn read_processed_agent_data_list(
     pagination: Query<Pagination>,
     pool: Data<sqlx::PgPool>,
-) -> actix_web::Result<Json<Vec<ProcessedAgent>>> {
+) -> actix_web::Result<Json<Vec<ProcessedAgentWithId>>> {
     let result =
         service::fetch_processed_agent_data_list(pagination.page.0, pagination.size.0, &pool)
             .await?;

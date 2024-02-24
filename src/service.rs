@@ -3,10 +3,9 @@ use std::num::{NonZeroU32, NonZeroU8};
 use sqlx::PgPool;
 use tracing::instrument;
 
-use crate::control::ws::Message;
 use crate::{
-    control::ws::Subscribers,
-    data::{repo, ProcessedAgent, ProcessedAgentId},
+    control::ws::{Message, Subscribers},
+    data::{repo, ProcessedAgent, ProcessedAgentId, ProcessedAgentWithId},
     error::AppResult,
 };
 
@@ -51,7 +50,7 @@ pub async fn fetch_processed_agent_data_list(
     page: NonZeroU32,
     size: NonZeroU8,
     pool: &PgPool,
-) -> AppResult<Vec<ProcessedAgent>> {
+) -> AppResult<Vec<ProcessedAgentWithId>> {
     Ok(repo::select_processed_agent_data_list(page, size, pool).await?)
 }
 

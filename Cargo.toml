@@ -38,3 +38,4 @@ mime = "0.3.17"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 utoipa = { version = "4.2.0", features = ["actix_extras", "openapi_extensions", "chrono", "non_strict_integers"] }
 utoipa-swagger-ui = { version = "6.0.0", features = ["actix-web"] }
+tracing-actix-web = "0.7.9"

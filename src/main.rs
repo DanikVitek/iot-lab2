@@ -1,7 +1,12 @@
-use actix_web::{web, App, HttpServer};
+use std::thread;
+
+use actix_web::{
+    middleware::{NormalizePath, TrailingSlash},
+    web, App, HttpServer,
+};
 use color_eyre::eyre::Result;
 use sqlx::PgPool;
-use std::thread;
+use tracing_actix_web::TracingLogger;
 use tracing_subscriber::{util::SubscriberInitExt, EnvFilter};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -38,17 +43,23 @@ async fn main() -> Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .service(control::ws::ws_endpoint)
-            .service(control::http::create_processed_agent_data)
-            .service(control::http::read_processed_agent_data)
-            .service(control::http::read_processed_agent_data_list)
-            .service(control::http::update_processed_agent_data)
-            .service(control::http::delete_processed_agent_data)
+            .wrap(TracingLogger::default())
+            .service(
+                web::scope("/api")
+                    .wrap(NormalizePath::new(TrailingSlash::Trim))
+                    .service(control::ws::ws_endpoint)
+                    .service(control::http::create_processed_agent_data)
+                    .service(control::http::read_processed_agent_data)
+                    .service(control::http::read_processed_agent_data_list)
+                    .service(control::http::update_processed_agent_data)
+                    .service(control::http::delete_processed_agent_data)
+                    .app_data(web::Data::new(pool.clone()))
+                    .app_data(web::Data::new(Subscribers::new())),
+            )
+            .service(web::redirect("/swagger-ui", "/swagger-ui/"))
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
             )
-            .app_data(web::Data::new(pool.clone()))
-            .app_data(web::Data::new(Subscribers::new()))
             .also(|_| {
                 tracing::info!("App built for worker {:?}", thread::current().id());
             })
@@ -72,6 +83,6 @@ async fn main() -> Result<()> {
     components(
         schemas(data::Accelerometer, data::Gps, data::Agent, data::ProcessedAgent),
         responses(data::Accelerometer, data::Gps, data::Agent, data::ProcessedAgent),
-    ),
+    )
 )]
 struct ApiDocs;

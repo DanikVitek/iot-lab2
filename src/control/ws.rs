@@ -259,21 +259,21 @@ where
 
         match self {
             Message::New { id, data } => {
-                let mut state = serializer.serialize_struct("Message", 0 + 1 + 1 + 1)?;
+                let mut state = serializer.serialize_struct("Message", 3)?;
                 state.serialize_field(KIND_FIELD, "new")?;
                 state.serialize_field("id", id)?;
                 state.serialize_field("data", data)?;
                 state.end()
             }
             Message::Update { id, data } => {
-                let mut state = serializer.serialize_struct("Message", 0 + 1 + 1 + 1)?;
+                let mut state = serializer.serialize_struct("Message", 3)?;
                 state.serialize_field(KIND_FIELD, "update")?;
                 state.serialize_field("id", id)?;
                 state.serialize_field("data", data)?;
                 state.end()
             }
             Message::Delete { id } => {
-                let mut state = serializer.serialize_struct("Message", 0 + 1 + 1)?;
+                let mut state = serializer.serialize_struct("Message", 3)?;
                 state.serialize_field(KIND_FIELD, "delete")?;
                 state.serialize_field("id", id)?;
                 state.serialize_field(DATA_TYPE_FIELD, std::any::type_name::<T>())?;

@@ -22,6 +22,7 @@ use crate::{
 
 /// Post a single/list of processed agent data and notify ws subscribers
 #[utoipa::path(
+    path = "/api/processed-agent-data",
     request_body(
         content = Vec<ProcessedAgent>,
         description = "Processed agent(-s) data to post and notify ws subscribers about",
@@ -68,7 +69,7 @@ use crate::{
         (status = "5XX", description = "Internal server error")
     )
 )]
-#[post("/api/processed-agent-data")]
+#[post("/processed-agent-data")]
 #[instrument(skip(subs, pool))]
 pub async fn create_processed_agent_data(
     data: Either<Json<ProcessedAgent>, Json<Vec<ProcessedAgent>>>,
@@ -104,6 +105,7 @@ pub async fn create_processed_agent_data(
 
 /// Read a single processed agent data by ID
 #[utoipa::path(
+    path = "/api/processed-agent-data/{id}",
     params(ProcessedAgentId),
     responses(
         (
@@ -129,7 +131,7 @@ pub async fn create_processed_agent_data(
         (status = "5XX", description = "Internal server error")
     )
 )]
-#[get("/api/processed-agent-data/{id}")]
+#[get("/processed-agent-data/{id}")]
 #[instrument(skip(pool))]
 pub async fn read_processed_agent_data(
     id: Path<ProcessedAgentId>,
@@ -141,6 +143,7 @@ pub async fn read_processed_agent_data(
 
 /// Read a list of processed agent data
 #[utoipa::path(
+    path = "/api/processed-agent-data",
     params(Pagination),
     responses(
         (
@@ -152,29 +155,28 @@ pub async fn read_processed_agent_data(
         (status = "5XX", description = "Internal server error")
     )
 )]
-#[get("/api/processed-agent-data")]
+#[get("/processed-agent-data")]
 #[instrument(skip(pool))]
 pub async fn read_processed_agent_data_list(
     pagination: Query<Pagination>,
     pool: Data<sqlx::PgPool>,
 ) -> actix_web::Result<Json<Vec<ProcessedAgent>>> {
-    let result = service::fetch_processed_agent_data_list(
-        pagination.page.unwrap_or_default().0,
-        pagination.size.unwrap_or_default().0,
-        &pool,
-    )
-    .await?;
+    let result =
+        service::fetch_processed_agent_data_list(pagination.page.0, pagination.size.0, &pool)
+            .await?;
     Ok(Json(result))
 }
 
 #[derive(Debug, Default, Deserialize, IntoParams)]
 struct Pagination {
     /// The page number, starting from 1
-    #[param(minimum = 1, value_type = NonZeroU32)]
-    page: Option<PageNumber>,
+    #[serde(default)]
+    #[param(minimum = 1, value_type = u32, default = 1)]
+    page: PageNumber,
     /// The number of items per page, between 1 and 20
-    #[param(minimum = 1, maximum = 20, value_type = NonZeroU8)]
-    size: Option<PageSize>,
+    #[serde(default)]
+    #[param(minimum = 1, maximum = 20, value_type = u8, default = 5)]
+    size: PageSize,
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Deserialize)]
@@ -188,6 +190,7 @@ struct PageSize(NonZeroU8);
 
 /// Update a single processed agent data and notify ws subscribers
 #[utoipa::path(
+    path = "/api/processed-agent-data/{id}",
     params(ProcessedAgentId),
     request_body(
         content = ProcessedAgent,
@@ -213,7 +216,7 @@ struct PageSize(NonZeroU8);
         (status = "5XX", description = "Internal server error")
     )
 )]
-#[put("/api/processed-agent-data/{id}")]
+#[put("/processed-agent-data/{id}")]
 #[instrument(skip(pool, subs))]
 pub async fn update_processed_agent_data(
     id: Path<ProcessedAgentId>,
@@ -233,6 +236,7 @@ pub async fn update_processed_agent_data(
 
 /// Delete a single processed agent data and notify ws subscribers
 #[utoipa::path(
+    path = "/api/processed-agent-data/{id}",
     params(ProcessedAgentId),
     responses(
         (status = 204, description = "Processed agent data deleted or was not present in the first place"),
@@ -240,7 +244,7 @@ pub async fn update_processed_agent_data(
         (status = "5XX", description = "Internal server error")
     )
 )]
-#[delete("/api/processed-agent-data/{id}")]
+#[delete("/processed-agent-data/{id}")]
 #[instrument(skip(pool, subs))]
 pub async fn delete_processed_agent_data(
     id: Path<ProcessedAgentId>,
@@ -248,7 +252,7 @@ pub async fn delete_processed_agent_data(
     pool: Data<sqlx::PgPool>,
 ) -> actix_web::Result<HttpResponse> {
     let id = id.into_inner();
-    let _ = service::delete_processed_agent_data(id, &pool, &subs).await?;
+    service::delete_processed_agent_data(id, &pool, &subs).await?;
     Ok(HttpResponse::NoContent().finish())
 }
 

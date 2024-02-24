@@ -54,7 +54,7 @@ impl FileStdoutWriter {
 
 impl std::io::Write for FileStdoutWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        std::io::stdout().write(buf)?;
+        _ = std::io::stdout().write(buf)?;
         let written = self.file.write(buf)?;
         Ok(written)
     }

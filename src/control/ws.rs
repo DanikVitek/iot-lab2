@@ -21,8 +21,7 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tracing::instrument;
 
-use crate::data::Dto;
-use crate::{error::AppResult, reclone};
+use crate::{data::Dto, error::AppResult, reclone};
 
 /// Websocket endpoint for subscribing to processed agent data
 #[get("/ws")]

@@ -40,7 +40,6 @@ async fn main() -> Result<()> {
         App::new()
             .service(control::ws::ws_endpoint)
             .service(control::http::create_processed_agent_data)
-            .service(control::http::create_processed_agent_data_list)
             .service(control::http::read_processed_agent_data)
             .service(control::http::read_processed_agent_data_list)
             .service(control::http::update_processed_agent_data)
@@ -65,7 +64,6 @@ async fn main() -> Result<()> {
 #[openapi(
     paths(
         control::http::create_processed_agent_data,
-        control::http::create_processed_agent_data_list,
         control::http::read_processed_agent_data,
         control::http::read_processed_agent_data_list,
         control::http::update_processed_agent_data,
